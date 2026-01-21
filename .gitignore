@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Optional: Environment variables (if you ever add a .env file)
+.env
+
+# Optional: IDE settings (VS Code, IntelliJ, etc)
+.vscode/
+.idea/

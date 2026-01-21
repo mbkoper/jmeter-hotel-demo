@@ -1,0 +1,267 @@
+[
+  {
+    "room_id": "STD-SGL-01",
+    "room_name": "Standard Single Room",
+    "category": "Standard",
+    "description": "A cozy and efficient room designed for the solo traveler. Features a comfortable single bed and a workstation.",
+    "size": { "value": 18, "unit": "m2" },
+    "occupancy": { "max_guests": 1, "adults": 1, "children": 0, "infants": 0 },
+    "beds": [ { "type": "Single", "quantity": 1, "dimensions": "90x200 cm" } ],
+    "pricing": {
+      "currency": "EUR",
+      "base_price_per_night": 89.00,
+      "taxes_included": false,
+      "taxes": [ { "name": "City tax", "type": "per_person_per_night", "amount": 3.50 } ],
+      "deposit_required": false,
+      "prepayment_required": true,
+      "refundable": false,
+      "cancellation_policy": { "free_cancellation_until": null, "penalty_after": "Booking time" },
+      "minimum_stay_nights": 1
+    },
+    "availability": {
+      "total_rooms_of_type": 20,
+      "connecting_rooms_available": false,
+      "smoking_allowed": false,
+      "pets": { "allowed": false, "fee_per_night": 0, "max_weight_kg": 0 }
+    },
+    "view": { "type": "Courtyard", "quiet_side": true, "floor_range": "1–3" },
+    "bathroom": {
+      "type": "Private",
+      "shower": "Standard cubicle",
+      "bathtub": false,
+      "toilet_separate": false,
+      "bidet": false,
+      "hairdryer": true,
+      "makeup_mirror": false,
+      "toiletries": [ "Soap", "Body wash", "Shampoo" ],
+      "bathrobes": false,
+      "slippers": false,
+      "towels_provided": true
+    },
+    "amenities": {
+      "climate_control": { "air_conditioning": true, "heating": true },
+      "technology": {
+        "wifi": { "available": true, "free": true, "speed_mbps": 50 },
+        "tv": { "available": true, "size_inches": 32, "smart_tv": false, "streaming_supported": false },
+        "usb_charging_ports": true,
+        "bluetooth_speaker": false
+      },
+      "comfort": { "soundproofing": true, "blackout_curtains": true, "pillow_menu": false, "extra_blankets": true },
+      "furnishing": {
+        "desk": true, "chair": true, "wardrobe": true, "luggage_rack": true,
+        "safe": { "available": true, "laptop_size": false }
+      },
+      "food_and_drink": {
+        "minibar": { "available": false, "free_items": false },
+        "coffee_machine": false, "kettle": true, "complimentary_water": true, "refrigerator": false
+      }
+    },
+    "accessibility": {
+      "wheelchair_accessible": true,
+      "door_width_cm": 90,
+      "step_free_access": true,
+      "accessible_bathroom": true,
+      "visual_alarm": true,
+      "hearing_assistance": false
+    },
+    "housekeeping": { "daily_cleaning": true, "linen_change_policy": "Every 3 days", "towel_reuse_program": true },
+    "safety": {
+      "smoke_detector": true, "sprinkler_system": true, "in_room_safe": true, "electronic_key_card": true, "emergency_exit_plan": true
+    },
+    "house_rules": {
+      "check_in_time": "14:00", "check_out_time": "10:00", "quiet_hours": "22:00–07:00", "no_parties": true, "damage_deposit_required": false
+    },
+    "sustainability": {
+      "eco_certified": true, "energy_saving_lighting": true, "water_saving_fixtures": true, "plastic_free_toiletries": false, "recycling_available": true
+    },
+    "media": {
+      "photos": [ "single room.png" ],
+      "floor_plan": null,
+      "virtual_tour_url": null
+    },
+    "guest_feedback": {
+      "average_rating": 4.2, "cleanliness_score": 4.5, "comfort_score": 4.0, "noise_level": "Low",
+      "common_comments": [ "Good value", "Small but clean" ]
+    },
+    "additional_notes": {
+      "renovated_year": 2020, "balcony": false, "special_features": [], "known_limitations": [ "No view" ]
+    }
+  },
+  {
+    "room_id": "DLX-KING-01",
+    "room_name": "Deluxe King Room",
+    "category": "Deluxe",
+    "description": "Spacious room with king-size bed and city view.",
+    "size": { "value": 32, "unit": "m2" },
+    "occupancy": { "max_guests": 2, "adults": 2, "children": 1, "infants": 1 },
+    "beds": [ { "type": "King", "quantity": 1, "dimensions": "180x200 cm" } ],
+    "pricing": {
+      "currency": "EUR",
+      "base_price_per_night": 185.00,
+      "taxes_included": false,
+      "taxes": [ { "name": "City tax", "type": "per_person_per_night", "amount": 3.50 } ],
+      "deposit_required": false,
+      "prepayment_required": false,
+      "refundable": true,
+      "cancellation_policy": { "free_cancellation_until": "2026-03-01T18:00:00Z", "penalty_after": "First night charge" },
+      "minimum_stay_nights": 1
+    },
+    "availability": {
+      "total_rooms_of_type": 12,
+      "connecting_rooms_available": true,
+      "smoking_allowed": false,
+      "pets": { "allowed": true, "fee_per_night": 15.00, "max_weight_kg": 10 }
+    },
+    "view": { "type": "City", "quiet_side": false, "floor_range": "3–8" },
+    "bathroom": {
+      "type": "Private",
+      "shower": "Walk-in",
+      "bathtub": false,
+      "toilet_separate": false,
+      "bidet": false,
+      "hairdryer": true,
+      "makeup_mirror": true,
+      "toiletries": [ "Shampoo", "Conditioner", "Soap", "Body lotion", "Shower cap" ],
+      "bathrobes": true,
+      "slippers": true,
+      "towels_provided": true
+    },
+    "amenities": {
+      "climate_control": { "air_conditioning": true, "heating": true },
+      "technology": {
+        "wifi": { "available": true, "free": true, "speed_mbps": 150 },
+        "tv": { "available": true, "size_inches": 55, "smart_tv": true, "streaming_supported": true },
+        "usb_charging_ports": true, "bluetooth_speaker": false
+      },
+      "comfort": { "soundproofing": true, "blackout_curtains": true, "pillow_menu": true, "extra_blankets": true },
+      "furnishing": {
+        "desk": true, "chair": true, "wardrobe": true, "luggage_rack": true,
+        "safe": { "available": true, "laptop_size": true }
+      },
+      "food_and_drink": {
+        "minibar": { "available": true, "free_items": false },
+        "coffee_machine": true, "kettle": true, "complimentary_water": true, "refrigerator": true
+      }
+    },
+    "accessibility": {
+      "wheelchair_accessible": false,
+      "door_width_cm": 80,
+      "step_free_access": true,
+      "accessible_bathroom": false,
+      "visual_alarm": false,
+      "hearing_assistance": false
+    },
+    "housekeeping": { "daily_cleaning": true, "linen_change_policy": "On request", "towel_reuse_program": true },
+    "safety": {
+      "smoke_detector": true, "sprinkler_system": true, "in_room_safe": true, "electronic_key_card": true, "emergency_exit_plan": true
+    },
+    "house_rules": {
+      "check_in_time": "15:00", "check_out_time": "11:00", "quiet_hours": "22:00–07:00", "no_parties": true, "damage_deposit_required": false
+    },
+    "sustainability": {
+      "eco_certified": true, "energy_saving_lighting": true, "water_saving_fixtures": true, "plastic_free_toiletries": false, "recycling_available": true
+    },
+    "media": {
+      "photos": [ "room deluxe.png", "room deluxe bathroom.png", "room deluxe view.png" ],
+      "floor_plan": "floorplan_dlx_king.pdf",
+      "virtual_tour_url": null
+    },
+    "guest_feedback": {
+      "average_rating": 4.6, "cleanliness_score": 4.8, "comfort_score": 4.7, "noise_level": "Low",
+      "common_comments": [ "Very comfortable bed", "Spacious bathroom" ]
+    },
+    "additional_notes": {
+      "renovated_year": 2024, "balcony": false, "special_features": [ "Floor-to-ceiling windows" ], "known_limitations": []
+    }
+  },
+  {
+    "room_id": "EXE-STE-01",
+    "room_name": "Executive Suite",
+    "category": "Suite",
+    "description": "Luxury living with separate living area, kitchenette, and panoramic views. Ideal for extended stays.",
+    "size": { "value": 55, "unit": "m2" },
+    "occupancy": { "max_guests": 4, "adults": 4, "children": 2, "infants": 2 },
+    "beds": [
+      { "type": "Super King", "quantity": 1, "dimensions": "200x220 cm" },
+      { "type": "Sofa Bed", "quantity": 1, "dimensions": "160x200 cm" }
+    ],
+    "pricing": {
+      "currency": "EUR",
+      "base_price_per_night": 299.00,
+      "taxes_included": false,
+      "taxes": [ { "name": "City tax", "type": "per_person_per_night", "amount": 3.50 } ],
+      "deposit_required": true,
+      "prepayment_required": false,
+      "refundable": true,
+      "cancellation_policy": { "free_cancellation_until": "2026-02-15T12:00:00Z", "penalty_after": "Full amount" },
+      "minimum_stay_nights": 2
+    },
+    "availability": {
+      "total_rooms_of_type": 5,
+      "connecting_rooms_available": true,
+      "smoking_allowed": false,
+      "pets": { "allowed": false, "fee_per_night": 0, "max_weight_kg": 0 }
+    },
+    "view": { "type": "Panoramic City", "quiet_side": true, "floor_range": "15–18" },
+    "bathroom": {
+      "type": "Private",
+      "shower": "Rain Shower",
+      "bathtub": true,
+      "toilet_separate": true,
+      "bidet": true,
+      "hairdryer": true,
+      "makeup_mirror": true,
+      "toiletries": [ "Premium Shampoo", "Conditioner", "Body Scrub", "Lotion", "Vanity Kit" ],
+      "bathrobes": true,
+      "slippers": true,
+      "towels_provided": true
+    },
+    "amenities": {
+      "climate_control": { "air_conditioning": true, "heating": true },
+      "technology": {
+        "wifi": { "available": true, "free": true, "speed_mbps": 500 },
+        "tv": { "available": true, "size_inches": 65, "smart_tv": true, "streaming_supported": true },
+        "usb_charging_ports": true, "bluetooth_speaker": true
+      },
+      "comfort": { "soundproofing": true, "blackout_curtains": true, "pillow_menu": true, "extra_blankets": true },
+      "furnishing": {
+        "desk": true, "chair": true, "wardrobe": true, "luggage_rack": true,
+        "safe": { "available": true, "laptop_size": true }
+      },
+      "food_and_drink": {
+        "minibar": { "available": true, "free_items": true },
+        "coffee_machine": true, "kettle": true, "complimentary_water": true, "refrigerator": true
+      }
+    },
+    "accessibility": {
+      "wheelchair_accessible": true,
+      "door_width_cm": 95,
+      "step_free_access": true,
+      "accessible_bathroom": true,
+      "visual_alarm": true,
+      "hearing_assistance": true
+    },
+    "housekeeping": { "daily_cleaning": true, "linen_change_policy": "Daily", "towel_reuse_program": true },
+    "safety": {
+      "smoke_detector": true, "sprinkler_system": true, "in_room_safe": true, "electronic_key_card": true, "emergency_exit_plan": true
+    },
+    "house_rules": {
+      "check_in_time": "15:00", "check_out_time": "12:00", "quiet_hours": "22:00–07:00", "no_parties": true, "damage_deposit_required": true
+    },
+    "sustainability": {
+      "eco_certified": true, "energy_saving_lighting": true, "water_saving_fixtures": true, "plastic_free_toiletries": false, "recycling_available": true
+    },
+    "media": {
+      "photos": [ "room suite main.png", "room suite bedroom.png", "room suite bathroom.png", "room suite balcony.png" ],
+      "floor_plan": "floorplan_suite.pdf",
+      "virtual_tour_url": null
+    },
+    "guest_feedback": {
+      "average_rating": 4.9, "cleanliness_score": 5.0, "comfort_score": 4.9, "noise_level": "Silent",
+      "common_comments": [ "Amazing view", "Best service ever" ]
+    },
+    "additional_notes": {
+      "renovated_year": 2025, "balcony": true, "special_features": [ "Jacuzzi", "Kitchenette" ], "known_limitations": []
+    }
+  }
+]
