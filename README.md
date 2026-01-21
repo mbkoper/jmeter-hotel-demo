@@ -1,11 +1,11 @@
 # Hotel Aurora - JMeter Workshop Demo
 
-A purpose-built Node.js application designed to teach **Performance Testing** and **JMeter** concepts. This application mimics a real-world hotel booking system but includes hidden controls to simulate performance bottlenecks and server failures.
+A purpose-built Node.js application designed to teach **Performance Testing** and **JMeter** concepts. This application mimics a real-world hotel booking system but includes hidden controls to simulate performance bottlenecks, server failures, and advanced correlation scenarios.
 
 ## Workshop Features
 
 This app is designed to help students practice:
-* **Correlation:** Dynamic handling of user sessions (Cookies) and specific user flows.
+* **Correlation:** Dynamic handling of user sessions via Cookies or URL Tokens.
 * **Assertions:** Predictable HTML responses and intentionally triggered errors.
 * **Load Testing:** Simulating high traffic on critical paths (`/reserve`).
 * **Chaos Engineering:** Configurable "Chaos Mode" to randomly throw HTTP 500 errors.
@@ -36,7 +36,7 @@ npm install
 
 
 3. Download necessary assets (Flatpickr) to `public/`:
-*(See setup instructions in previous steps or ensure `public/flatpickr` exists)*
+*(Ensure `public/flatpickr` exists with css/js files)*
 4. Start the app:
 ```bash
 npm start
@@ -47,7 +47,7 @@ npm start
 
 ## Application Logic
 
-### Authentication
+### Authentication & Credentials
 
 * **Pattern:** `user<ID>` / `Password<ID>`
 * **Examples:**
@@ -57,14 +57,23 @@ npm start
 
 * **Admin:** `admin` / `password` (Access to all areas)
 
-### The "Hidden" Config Page
+### Configuration & Auth Modes
 
 Accessible at: `http://localhost:3000/config`
 
-This page allows the instructor or student to control the environment variables of the running container:
+This page allows the instructor to control the environment. You can switch between **two authentication modes** to teach different JMeter concepts:
 
-* **Artificial Latency:** Add milliseconds of delay to Login, Search, or Booking actions.
-* **Chaos Mode:** Set an error rate (0-100%) to trigger random HTTP 500 crashes.
+1. **Cookies [DEFAULT]:**
+* Standard web session behavior.
+* **JMeter Lesson:** Requires an *HTTP Cookie Manager* to record and replay correctly.
+* *Why?* Simplest "happy path" for beginners.
+
+
+2. **URL Token:**
+* Appends `?token=userX` to every URL.
+* **JMeter Lesson:** Advanced **Correlation**. Students must extract the token from the login response (using a *Regular Expression Extractor*) and rewrite all subsequent links.
+
+
 
 ### Booking Constraints
 
