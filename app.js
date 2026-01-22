@@ -185,7 +185,7 @@ app.get('/', async (req, res) => {
   
   if (req.user) return res.redirect(req.makeLink('/menu'))
 
-  res.send(layout('Login', `
+  res.send(layout('Login', ``+`
     <article>
       <header><strong>Welcome</strong></header>
       <p>Please log in to manage reservations.</p>
@@ -218,7 +218,7 @@ app.post('/login', async (req, res) => {
     }
   }
 
-  res.send(layout('Login Failed', `
+  res.send(layout('Login Failed', ``+`
     <article style="border-color: red;">
       <h3>❌ Login Failed</h3>
       <p>Invalid credentials.</p>
@@ -238,7 +238,7 @@ app.get('/menu', async (req, res) => {
   if (!req.user) return res.redirect('/') 
   await sleep(config.delays.menu)
   
-  res.send(layout('Main Menu', `
+  res.send(layout('Main Menu', ``+`
     <h2>Main Menu</h2>
     <p>Welcome back, <strong>${req.user}</strong>.</p>
     <div class="grid">
@@ -264,7 +264,7 @@ app.get('/rooms', async (req, res) => {
     } else {
        imgHtml = `<div class="img-placeholder"><span>No Image Available</span></div>`
     }
-    return `
+    return ``+`
     <article>
       <header>
         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -287,7 +287,7 @@ app.get('/rooms', async (req, res) => {
     </article>
   `}).join('')
 
-  res.send(layout('Our Rooms', `
+  res.send(layout('Our Rooms', ``+`
     <h2>Our Accommodations</h2>
     <div class="grid">${cards}</div>
     <div style="margin-top:2rem;">
@@ -321,7 +321,7 @@ app.get('/rooms/:id', async (req, res) => {
   const access = room.accessibility || {}
   const rules = room.house_rules || {}
 
-  res.send(layout(room.room_name, `
+  res.send(layout(room.room_name, ``+`
     <article>
       <header>
         <hgroup>
@@ -387,7 +387,7 @@ app.get('/reserve', async (req, res) => {
   const allReservations = JSON.stringify(reservations)
   const formAction = req.makeLink('/reserve')
 
-  res.send(layout('Make Reservation', `
+  res.send(layout('Make Reservation', ``+`
     <h2>Book your stay</h2>
     <form action="${formAction}" method="POST">
       <div class="grid">
@@ -449,7 +449,7 @@ app.post('/reserve', async (req, res) => {
 
   const isAvailable = isRoomAvailable(room, checkIn, Number(nights));
   if (!isAvailable) {
-    return res.status(409).send(layout('Booking Error', `
+    return res.status(409).send(layout('Booking Error', ``+`
       <article style="border-color: red;">
         <h3>❌ Room Unavailable</h3>
         <p>Sorry, <strong>${room}</strong> is already booked for these dates.</p>
@@ -468,16 +468,16 @@ app.post('/reserve', async (req, res) => {
     bookedBy: req.user
   })
 
-  if (reservations.length > 2000) reservations.shift()
   res.redirect(req.makeLink('/overview'))
 })
 
 app.get('/overview', async (req, res) => {
   if (!req.user) return res.redirect('/')
   await sleep(config.delays.overview)
-  const rows = reservations.length === 0
+  const userReservations = reservations.filter(r => r.bookedBy === req.user)
+  const rows = userReservations.length === 0
     ? `<tr><td colspan="7" style="text-align:center; padding: 2rem;" class="muted">No reservations found.</td></tr>`
-    : reservations.map(r => `
+    : userReservations.map(r => `
       <tr>
         <td>#${r.id}</td>
         <td><b>${r.guest}</b></td>
@@ -488,9 +488,9 @@ app.get('/overview', async (req, res) => {
         <td style="font-size:0.8em; color:grey;">${r.bookedBy || 'system'}</td>
       </tr>
     `).reverse().join('')
-  res.send(layout('Overview', `
+  res.send(layout('Overview', ``+`
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-      <h3>Current Bookings <span class="badge">${reservations.length}</span></h3>
+      <h3>Current Bookings <span class="badge">${userReservations.length}</span></h3>
       <a href="${req.makeLink('/reserve')}" role="button" class="contrast outline" style="font-size:0.8rem;">+ New</a>
     </div>
     <div class="table-wrap">
@@ -510,7 +510,20 @@ app.get('/overview', async (req, res) => {
 // --- CONFIG ---
 app.get('/config', (_req, res) => {
   const { delays, errorRate, authMode } = config
-  res.send(layout('Workshop Config', `
+  const rows = reservations.length === 0
+    ? `<tr><td colspan="7" style="text-align:center; padding: 2rem;" class="muted">No reservations found.</td></tr>`
+    : reservations.map(r => `
+      <tr>
+        <td>#${r.id}</td>
+        <td><b>${r.guest}</b></td>
+        <td>${r.room}</td>
+        <td>${r.checkIn || 'N/A'}</td>
+        <td>${r.nights}</td>
+        <td>${r.date}</td>
+        <td style="font-size:0.8em; color:grey;">${r.bookedBy || 'system'}</td>
+      </tr>
+    `).reverse().join('')
+  res.send(layout('Workshop Config', ``+`
     <article>
       <header><strong>⚙️ Simulation Configuration</strong></header>
       <form action="/config" method="POST">
@@ -544,6 +557,19 @@ app.get('/config', (_req, res) => {
         <a href="/" role="button" class="secondary outline" style="width:100%; text-align:center;">Back to App</a>
       </form>
     </article>
+    <section style="margin-top:2rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <h3>All Bookings <span class="badge">${reservations.length}</span></h3>
+      </div>
+      <div class="table-wrap">
+        <table class="striped">
+          <thead>
+            <tr><th>ID</th><th>Guest</th><th>Type</th><th>Check-In</th><th>Nights</th><th>Booked At</th><th>User</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </section>
   `, { user: null }))
 })
 
