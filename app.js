@@ -76,6 +76,11 @@ const makeLink = (path, user) => {
   return path
 }
 
+const makeLinkWithRoom = (baseLink, roomName) => {
+  const separator = baseLink.includes('?') ? '&amp;' : '?'
+  return `${baseLink}${separator}room=${encodeURIComponent(roomName)}`
+}
+
 // --- AUTH MIDDLEWARE ---
 app.use((req, res, next) => {
   let user = null;
@@ -360,7 +365,7 @@ app.get('/rooms/:id', async (req, res) => {
 
       <footer>
         <div class="grid">
-           <a href="${req.makeLink('/reserve')}&room=${room.room_name}" role="button">Book This Room</a>
+           <a href="${makeLinkWithRoom(req.makeLink('/reserve'), room.room_name)}" role="button">Book This Room</a>
            <a href="${req.makeLink('/rooms')}" role="button" class="secondary outline">Back to List</a>
         </div>
       </footer>
