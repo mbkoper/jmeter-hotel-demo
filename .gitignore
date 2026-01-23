@@ -18,6 +18,8 @@ Thumbs.db
 
 # Optional: Environment variables (if you ever add a .env file)
 .env
+*.svb
+*.pem
 
 # Optional: IDE settings (VS Code, IntelliJ, etc)
 .vscode/

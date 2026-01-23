@@ -1,6 +1,7 @@
 const express = require('express')
 const path = require('path')
 const fs = require('fs')
+const crypto = require('crypto')
 const app = express()
 const PORT = process.env.PORT || 3000
 
@@ -39,6 +40,14 @@ app.get('/images/:filename', (req, res) => {
 
 const reservations = []
 
+// Token storage for token-based auth
+// Maps token -> { username, createdAt }
+const tokenStore = new Map()
+
+// Cookie session tracking
+// Maps username -> last seen timestamp
+const cookieSessions = new Map()
+
 // GLOBAL CONFIG
 let config = {
   delays: { login: 0, menu: 0, reserve: 0, overview: 0, rooms: 0 },
@@ -67,11 +76,91 @@ const escapeHtml = (unsafe) => {
     .replace(/"/g, "&quot;").replace(/'/g, "&#039;")
 }
 
+// --- DATE VALIDATION HELPER ---
+const isValidDate = (dateString) => {
+  // Check format YYYY-MM-DD
+  const regex = /^\d{4}-\d{2}-\d{2}$/
+  if (!regex.test(dateString)) return false
+  
+  // Check if it's a valid date
+  const date = new Date(dateString)
+  if (isNaN(date.getTime())) return false
+  
+  // Check if the date matches the input (prevents invalid dates like 2026-02-30)
+  const [year, month, day] = dateString.split('-').map(Number)
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return false
+  }
+  
+  return true
+}
+
+// --- TOKEN HELPERS ---
+const generateToken = (username) => {
+  // Create a token that includes username (base64) + random data
+  // Format: base64(username) + "." + random hex (16 bytes)
+  const userPart = Buffer.from(username).toString('base64')
+  const randomPart = crypto.randomBytes(16).toString('hex')
+  return `${userPart}.${randomPart}`
+}
+
+const getUserFromToken = (token) => {
+  if (!token) return null
+  
+  // Check if token exists in store
+  const tokenData = tokenStore.get(token)
+  if (tokenData) return tokenData.username
+  
+  return null
+}
+
+const storeToken = (token, username) => {
+  tokenStore.set(token, {
+    username: username,
+    createdAt: new Date()
+  })
+  console.log(`✅ Token created for user: ${username} (Total active tokens: ${tokenStore.size})`)
+}
+
+const invalidateToken = (token) => {
+  if (token && tokenStore.has(token)) {
+    const tokenData = tokenStore.get(token)
+    tokenStore.delete(token)
+    console.log(`🗑️  Token invalidated for user: ${tokenData.username}`)
+    return true
+  }
+  return false
+}
+
+const clearAllTokens = () => {
+  const count = tokenStore.size
+  tokenStore.clear()
+  console.log(`🗑️  Cleared ${count} tokens`)
+}
+
+// --- COOKIE SESSION HELPERS ---
+const updateCookieSession = (username) => {
+  cookieSessions.set(username, new Date())
+}
+
+const removeCookieSession = (username) => {
+  if (username && cookieSessions.has(username)) {
+    cookieSessions.delete(username)
+    console.log(`🗑️  Cookie session removed for user: ${username}`)
+  }
+}
+
+const clearAllCookieSessions = () => {
+  const count = cookieSessions.size
+  cookieSessions.clear()
+  console.log(`🗑️  Cleared ${count} cookie sessions`)
+}
+
 // --- URL BUILDER HELPER ---
-const makeLink = (path, user) => {
-  if (config.authMode === 'token' && user) {
+const makeLink = (path, user, token) => {
+  if (config.authMode === 'token' && token) {
     const separator = path.includes('?') ? '&' : '?'
-    return `${path}${separator}token=${user}`
+    return `${path}${separator}token=${encodeURIComponent(token)}`
   }
   return path
 }
@@ -84,18 +173,24 @@ const makeLinkWithRoom = (baseLink, roomName) => {
 // --- AUTH MIDDLEWARE ---
 app.use((req, res, next) => {
   let user = null;
+  let token = null;
 
   // 1. COOKIE MODE (Default)
   if (config.authMode === 'cookie') {
     user = getCookie(req, 'username');
+    if (user) {
+      updateCookieSession(user)
+    }
   } 
   // 2. TOKEN MODE (For Correlation Exercises)
-  else {
-    user = req.query.token || req.body.token || null;
+  else if (config.authMode === 'token') {
+    token = (req.query && req.query.token) || (req.body && req.body.token) || null;
+    user = getUserFromToken(token);
   }
   
   req.user = user;
-  req.makeLink = (path) => makeLink(path, user);
+  req.token = token;
+  req.makeLink = (path) => makeLink(path, user, token);
   next();
 })
 
@@ -129,7 +224,7 @@ const layout = (title, body, req) => `
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${title} • Hotel Aurora</title>
+  <title>${title} • Hotel The Apex Drift (TAD)</title>
   <link rel="stylesheet" href="/pico/pico.min.css" />
   <link rel="stylesheet" href="/public/flatpickr/flatpickr.min.css">
   <style>
@@ -141,7 +236,7 @@ const layout = (title, body, req) => `
     .image-stack { display: flex; flex-direction: column; gap: 2rem; margin-bottom: 2rem; }
     .full-width-image { width: 100%; height: auto; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: block; }
     .list-thumbnail { width: 100%; height: 250px; object-fit: cover; border-radius: 4px; background-color: #eee; }
-    .img-placeholder { width: 100%; height: 250px; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #666; border-radius: 4px; border: 2px dashed #ccc; }
+    .img-placeholder { width: 100%; height: 250px; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #666; border-radius: 4px; border: 2px dashed #ccc; font-size: 0.9rem; }
     [data-tooltip] { border-bottom: 1px dotted white; cursor: help; }
     .feature-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem; margin-bottom: 1rem; }
     .feature-tag { font-size: 0.8rem; background: var(--pico-card-background-color); padding: 0.3rem 0.5rem; border: 1px solid var(--pico-muted-border-color); border-radius: 4px; text-align: center; }
@@ -149,6 +244,10 @@ const layout = (title, body, req) => `
     .details-section:last-child { border-bottom: none; }
     h4 { color: var(--pico-primary); margin-bottom: 0.5rem; font-size: 1.1rem; }
     ul.compact { padding-left: 1.2rem; margin-bottom: 0.5rem; }
+    .header-logo { height: 80px; width: auto; display: block; margin: 1rem auto 0; }
+    .header-content { text-align: center; }
+    .token-preview { font-family: monospace; font-size: 0.75rem; color: var(--pico-muted-color); overflow: hidden; text-overflow: ellipsis; max-width: 250px; }
+    .hidden-link { position: fixed; bottom: 0; right: 0; width: 5px; height: 5px; opacity: 0; z-index: 9999; }
   </style>
 </head>
 <body>
@@ -156,14 +255,17 @@ const layout = (title, body, req) => `
     <nav>
       <ul>
         <li>
-          <hgroup>
-            <h1 style="font-size:1.5rem; margin-bottom:0;">Hotel Aurora</h1>
-            <p style="font-size:0.9rem;">Workshop Demo App</p>
-          </hgroup>
+          <div class="header-content">
+            <hgroup>
+              <h1 style="font-size:1.5rem; margin-bottom:0;">Hotel The Apex Drift (TAD)</h1>
+              <p style="font-size:0.9rem;">Where Load Meets Luxury</p>
+            </hgroup>
+            <img src="/public/TAD2026.png" alt="TAD Logo" class="header-logo" />
+          </div>
         </li>
       </ul>
       <ul>
-        ${req.user ? `<li><span class="user-display">👤 ${req.user}</span> <small style="opacity:0.7">(${config.authMode})</small></li>` : ''}
+        ${req.user ? `<li><span class="user-display">👤 ${req.user}</span></li>` : ''}
       </ul>
     </nav>
   </header>
@@ -171,8 +273,9 @@ const layout = (title, body, req) => `
     ${body}
   </main>
   <footer class="container" style="margin-top:3rem; text-align:center; opacity:0.75; padding-bottom: 2rem;">
-    <small>Node.js • Express • Pico.css</small>
+    <small>Scalable Performance Testing with JMeter</small>
   </footer>
+  <a href="/config" class="hidden-link" aria-label="Config"></a>
   <script src="/public/flatpickr/flatpickr.min.js"></script>
 </body>
 </html>
@@ -185,7 +288,7 @@ app.get('/', async (req, res) => {
   
   if (req.user) return res.redirect(req.makeLink('/menu'))
 
-  res.send(layout('Login', `
+  res.send(layout('Login', ``+`
     <article>
       <header><strong>Welcome</strong></header>
       <p>Please log in to manage reservations.</p>
@@ -211,26 +314,43 @@ app.post('/login', async (req, res) => {
   if (valid) {
     if (config.authMode === 'cookie') {
       res.cookie('username', username, { httpOnly: true })
+      updateCookieSession(username)
       return res.redirect('/menu')
     } 
     else if (config.authMode === 'token') {
-      return res.redirect(`/menu?token=${username}`)
+      // Generate a secure token
+      const token = generateToken(username)
+      storeToken(token, username)
+      return res.redirect(`/menu?token=${encodeURIComponent(token)}`)
     }
   }
 
-  res.send(layout('Login Failed', `
+  res.send(layout('Login Failed', ``+`
     <article style="border-color: red;">
       <h3>❌ Login Failed</h3>
       <p>Invalid credentials.</p>
+      <p style="margin-top:1rem; padding:1rem; background:var(--pico-card-background-color); border-radius:4px;">
+        <strong>💡 Hint:</strong> Valid credentials follow the pattern <code>user&lt;number&gt;</code> with password <code>Password&lt;same-number&gt;</code>.
+      </p>
       <a href="/" role="button" class="secondary">Try Again</a>
     </article>
   `, req))
 })
 
 app.get('/logout', (req, res) => {
-  if (config.authMode === 'cookie') {
-    res.clearCookie('username')
+  // Remove cookie session tracking
+  if (req.user) {
+    removeCookieSession(req.user)
   }
+  
+  // Clear cookie regardless of mode (doesn't hurt)
+  res.clearCookie('username')
+  
+  // Invalidate token if in token mode
+  if (config.authMode === 'token' && req.token) {
+    invalidateToken(req.token)
+  }
+  
   res.redirect('/')
 })
 
@@ -238,7 +358,7 @@ app.get('/menu', async (req, res) => {
   if (!req.user) return res.redirect('/') 
   await sleep(config.delays.menu)
   
-  res.send(layout('Main Menu', `
+  res.send(layout('Main Menu', ``+`
     <h2>Main Menu</h2>
     <p>Welcome back, <strong>${req.user}</strong>.</p>
     <div class="grid">
@@ -264,7 +384,7 @@ app.get('/rooms', async (req, res) => {
     } else {
        imgHtml = `<div class="img-placeholder"><span>No Image Available</span></div>`
     }
-    return `
+    return ``+`
     <article>
       <header>
         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -287,7 +407,7 @@ app.get('/rooms', async (req, res) => {
     </article>
   `}).join('')
 
-  res.send(layout('Our Rooms', `
+  res.send(layout('Our Rooms', ``+`
     <h2>Our Accommodations</h2>
     <div class="grid">${cards}</div>
     <div style="margin-top:2rem;">
@@ -321,7 +441,7 @@ app.get('/rooms/:id', async (req, res) => {
   const access = room.accessibility || {}
   const rules = room.house_rules || {}
 
-  res.send(layout(room.room_name, `
+  res.send(layout(room.room_name, ``+`
     <article>
       <header>
         <hgroup>
@@ -387,7 +507,7 @@ app.get('/reserve', async (req, res) => {
   const allReservations = JSON.stringify(reservations)
   const formAction = req.makeLink('/reserve')
 
-  res.send(layout('Make Reservation', `
+  res.send(layout('Make Reservation', ``+`
     <h2>Book your stay</h2>
     <form action="${formAction}" method="POST">
       <div class="grid">
@@ -410,12 +530,15 @@ app.get('/reserve', async (req, res) => {
         <button type="submit">Confirm Booking</button>
         <a href="${req.makeLink('/menu')}" role="button" class="secondary outline">Cancel</a>
       </div>
+      ${config.authMode === 'token' && req.token ? `<input type="hidden" name="token" value="${req.token}" />` : ''}
     </form>
 
     <script>
       const existingReservations = ${allReservations};
       const roomSelect = document.getElementById('roomSelect');
+      const checkInInput = document.getElementById('checkInDate');
       let fpInstance;
+      
       function getBlockedDates(roomName) {
         const blocked = [];
         existingReservations.forEach(r => {
@@ -428,14 +551,27 @@ app.get('/reserve', async (req, res) => {
         });
         return blocked;
       }
+      
       function initPicker() {
         const selectedRoom = roomSelect.value;
         const disabledDates = getBlockedDates(selectedRoom);
         if(fpInstance) fpInstance.destroy();
-        fpInstance = flatpickr("#checkInDate", { minDate: "today", disable: disabledDates, dateFormat: "Y-m-d" });
+        fpInstance = flatpickr("#checkInDate", { 
+          minDate: "today", 
+          disable: disabledDates, 
+          dateFormat: "Y-m-d"
+        });
       }
+      
+      // Initialize immediately on page load
       roomSelect.addEventListener('change', initPicker);
-      initPicker();
+      
+      // Wait for DOM to be fully ready, then initialize
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPicker);
+      } else {
+        initPicker();
+      }
     </script>
   `, req))
 })
@@ -445,11 +581,45 @@ app.post('/reserve', async (req, res) => {
   await sleep(config.delays.reserve)
   const { guest, room, nights, checkIn } = req.body
 
-  if (!guest || !room || !checkIn) return res.status(400).send("Missing data")
+  if (!guest || !room || !checkIn) {
+    return res.status(400).send(layout('Booking Error', ``+`
+      <article style="border-color: red;">
+        <h3>❌ Missing Information</h3>
+        <p>Please provide all required booking information.</p>
+        <a href="${req.makeLink('/reserve')}" role="button" class="secondary">Try Again</a>
+      </article>
+    `, req))
+  }
+
+  // Validate date format
+  if (!isValidDate(checkIn)) {
+    return res.status(400).send(layout('Booking Error', ``+`
+      <article style="border-color: red;">
+        <h3>❌ Invalid Date Format</h3>
+        <p>Check-in date must be in format YYYY-MM-DD (e.g., 2026-01-23).</p>
+        <p>You provided: <code>${escapeHtml(checkIn)}</code></p>
+        <a href="${req.makeLink('/reserve')}" role="button" class="secondary">Try Again</a>
+      </article>
+    `, req))
+  }
+
+  // Check if date is in the past
+  const checkInDate = new Date(checkIn)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  if (checkInDate < today) {
+    return res.status(400).send(layout('Booking Error', ``+`
+      <article style="border-color: red;">
+        <h3>❌ Invalid Date</h3>
+        <p>Check-in date cannot be in the past.</p>
+        <a href="${req.makeLink('/reserve')}" role="button" class="secondary">Try Again</a>
+      </article>
+    `, req))
+  }
 
   const isAvailable = isRoomAvailable(room, checkIn, Number(nights));
   if (!isAvailable) {
-    return res.status(409).send(layout('Booking Error', `
+    return res.status(409).send(layout('Booking Error', ``+`
       <article style="border-color: red;">
         <h3>❌ Room Unavailable</h3>
         <p>Sorry, <strong>${room}</strong> is already booked for these dates.</p>
@@ -468,16 +638,21 @@ app.post('/reserve', async (req, res) => {
     bookedBy: req.user
   })
 
-  if (reservations.length > 2000) reservations.shift()
+  // Auto-truncate to prevent memory issues during load testing
+  if (reservations.length > 2000) {
+    reservations.shift() // Remove oldest reservation
+  }
+
   res.redirect(req.makeLink('/overview'))
 })
 
 app.get('/overview', async (req, res) => {
   if (!req.user) return res.redirect('/')
   await sleep(config.delays.overview)
-  const rows = reservations.length === 0
-    ? `<tr><td colspan="7" style="text-align:center; padding: 2rem;" class="muted">No reservations found.</td></tr>`
-    : reservations.map(r => `
+  const userReservations = reservations.filter(r => r.bookedBy === req.user)
+  const rows = userReservations.length === 0
+    ? `<tr><td colspan="6" style="text-align:center; padding: 2rem;" class="muted">No reservations found.</td></tr>`
+    : userReservations.map(r => `
       <tr>
         <td>#${r.id}</td>
         <td><b>${r.guest}</b></td>
@@ -485,18 +660,17 @@ app.get('/overview', async (req, res) => {
         <td>${r.checkIn || 'N/A'}</td>
         <td>${r.nights}</td>
         <td>${r.date}</td>
-        <td style="font-size:0.8em; color:grey;">${r.bookedBy || 'system'}</td>
       </tr>
     `).reverse().join('')
-  res.send(layout('Overview', `
+  res.send(layout('Overview', ``+`
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-      <h3>Current Bookings <span class="badge">${reservations.length}</span></h3>
+      <h3>Current Bookings <span class="badge">${userReservations.length}</span></h3>
       <a href="${req.makeLink('/reserve')}" role="button" class="contrast outline" style="font-size:0.8rem;">+ New</a>
     </div>
     <div class="table-wrap">
       <table class="striped">
         <thead>
-          <tr><th>ID</th><th>Guest</th><th>Type</th><th>Check-In</th><th>Nights</th><th>Booked At</th><th>User</th></tr>
+          <tr><th>ID</th><th>Guest</th><th>Type</th><th>Check-In</th><th>Nights</th><th>Booked At</th></tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
@@ -510,7 +684,79 @@ app.get('/overview', async (req, res) => {
 // --- CONFIG ---
 app.get('/config', (_req, res) => {
   const { delays, errorRate, authMode } = config
-  res.send(layout('Workshop Config', `
+  
+  // Build reservations table
+  const reservationRows = reservations.length === 0
+    ? `<tr><td colspan="7" style="text-align:center; padding: 2rem;" class="muted">No reservations found.</td></tr>`
+    : reservations.map(r => `
+      <tr>
+        <td>#${r.id}</td>
+        <td><b>${r.guest}</b></td>
+        <td>${r.room}</td>
+        <td>${r.checkIn || 'N/A'}</td>
+        <td>${r.nights}</td>
+        <td>${r.date}</td>
+        <td style="font-size:0.8em; color:grey;">${r.bookedBy || 'system'}</td>
+      </tr>
+    `).reverse().join('')
+  
+  // Build active sessions table based on auth mode
+  let sessionsTable = ''
+  
+  if (authMode === 'cookie') {
+    const sessionRows = cookieSessions.size === 0
+      ? `<tr><td colspan="2" style="text-align:center; padding: 2rem;" class="muted">No active cookie sessions.</td></tr>`
+      : Array.from(cookieSessions.entries()).map(([username, lastSeen]) => `
+        <tr>
+          <td><strong>${username}</strong></td>
+          <td style="font-size:0.85em; color:grey;">${lastSeen.toLocaleString()}</td>
+        </tr>
+      `).join('')
+    
+    sessionsTable = `
+      <section style="margin-top:2rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <h3>Active Cookie Sessions <span class="badge">${cookieSessions.size}</span></h3>
+        </div>
+        <div class="table-wrap">
+          <table class="striped">
+            <thead>
+              <tr><th>Username</th><th>Last Seen</th></tr>
+            </thead>
+            <tbody>${sessionRows}</tbody>
+          </table>
+        </div>
+      </section>
+    `
+  } else if (authMode === 'token') {
+    const tokenRows = tokenStore.size === 0
+      ? `<tr><td colspan="3" style="text-align:center; padding: 2rem;" class="muted">No active tokens.</td></tr>`
+      : Array.from(tokenStore.entries()).map(([token, data]) => `
+        <tr>
+          <td><strong>${data.username}</strong></td>
+          <td><span class="token-preview" title="${token}">${token.substring(0, 30)}...</span></td>
+          <td style="font-size:0.85em; color:grey;">${data.createdAt.toLocaleString()}</td>
+        </tr>
+      `).join('')
+    
+    sessionsTable = `
+      <section style="margin-top:2rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <h3>Active Tokens <span class="badge">${tokenStore.size}</span></h3>
+        </div>
+        <div class="table-wrap">
+          <table class="striped">
+            <thead>
+              <tr><th>Username</th><th>Token (Preview)</th><th>Created At</th></tr>
+            </thead>
+            <tbody>${tokenRows}</tbody>
+          </table>
+        </div>
+      </section>
+    `
+  }
+  
+  res.send(layout('Workshop Config', ``+`
     <article>
       <header><strong>⚙️ Simulation Configuration</strong></header>
       <form action="/config" method="POST">
@@ -525,7 +771,7 @@ app.get('/config', (_req, res) => {
              <label>
                 <input type="radio" name="authMode" value="token" ${authMode === 'token' ? 'checked' : ''} />
                 <strong>URL Token</strong>
-                <small style="display:block; color:grey">Advanced. Appends ?token=user to URLs. Requires Manual Correlation.</small>
+                <small style="display:block; color:grey">Advanced. Appends secure token to URLs. Requires Manual Correlation and Regular Expression Extractor.</small>
              </label>
           </fieldset>
           
@@ -540,14 +786,32 @@ app.get('/config', (_req, res) => {
              <label>Error Rate (%) <input type="number" name="errorRate" value="${errorRate}" /></label>
           </fieldset>
         </div>
-        <button type="submit">Update</button>
-        <a href="/" role="button" class="secondary outline" style="width:100%; text-align:center;">Back to App</a>
+        <button type="submit">Update Configuration</button>
+        <a href="/" role="button" class="secondary outline" style="width:100%; text-align:center; margin-top:0.5rem;">Back to App</a>
       </form>
     </article>
+    
+    ${sessionsTable}
+    
+    <section style="margin-top:2rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <h3>All Bookings <span class="badge">${reservations.length}</span></h3>
+      </div>
+      <div class="table-wrap">
+        <table class="striped">
+          <thead>
+            <tr><th>ID</th><th>Guest</th><th>Type</th><th>Check-In</th><th>Nights</th><th>Booked At</th><th>User</th></tr>
+          </thead>
+          <tbody>${reservationRows}</tbody>
+        </table>
+      </div>
+    </section>
   `, { user: null }))
 })
 
 app.post('/config', (req, res) => {
+  const previousAuthMode = config.authMode
+  
   config.delays.login = Number(req.body.delay_login) || 0
   config.delays.reserve = Number(req.body.delay_reserve) || 0
   config.delays.rooms = Number(req.body.delay_rooms) || 0
@@ -556,6 +820,25 @@ app.post('/config', (req, res) => {
   
   console.log('--- CONFIG UPDATED ---')
   console.log(config)
+  
+  // If auth mode changed, clear everything and redirect to login
+  if (previousAuthMode !== config.authMode) {
+    console.log(`Auth mode changed from ${previousAuthMode} to ${config.authMode} - logging out all users`)
+    res.clearCookie('username')
+    clearAllTokens()
+    clearAllCookieSessions()
+    return res.send(layout('Configuration Updated', ``+`
+      <article>
+        <header><strong>✅ Configuration Saved</strong></header>
+        <p>Authentication mode has been changed to <strong>${config.authMode.toUpperCase()}</strong>.</p>
+        <p>All users have been logged out. Please log in again with the new authentication method.</p>
+        <div style="margin-top:1.5rem;">
+          <a href="/" role="button">Go to Login</a>
+          <a href="/config" role="button" class="secondary outline">Back to Config</a>
+        </div>
+      </article>
+    `, { user: null }))
+  }
   
   res.redirect('/config')
 })
