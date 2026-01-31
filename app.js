@@ -742,7 +742,15 @@ app.get('/search', async (req, res) => {
   
   // Check availability if dates are provided
   if (checkIn && isValidDate(checkIn)) {
-    const nightsCount = nights ? Number(nights) : (checkOut && isValidDate(checkOut) ? Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)) : 1)
+    let nightsCount = 1
+    if (nights) {
+      nightsCount = Number(nights)
+    } else if (checkOut && isValidDate(checkOut)) {
+      const checkInDate = new Date(checkIn)
+      const checkOutDate = new Date(checkOut)
+      const diffMs = checkOutDate - checkInDate
+      nightsCount = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+    }
     filteredRooms = filteredRooms.filter(r => isRoomAvailable(r.room_name, checkIn, nightsCount))
   }
   
