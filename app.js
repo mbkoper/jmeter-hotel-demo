@@ -50,7 +50,7 @@ const cookieSessions = new Map()
 
 // GLOBAL CONFIG
 let config = {
-  delays: { login: 0, menu: 0, reserve: 0, overview: 0, rooms: 0 },
+  delays: { login: 0, menu: 0, reserve: 0, overview: 0, rooms: 0, search: 0, checkout: 0 },
   errorRate: 0,
   // Default is now 'cookie' (easiest for recording)
   authMode: 'cookie' 
@@ -93,6 +93,34 @@ const isValidDate = (dateString) => {
   }
   
   return true
+}
+
+// --- LUHN ALGORITHM FOR CREDIT CARD VALIDATION ---
+const luhnCheck = (cardNumber) => {
+  // Remove spaces and non-digits
+  const digits = cardNumber.replace(/\D/g, '')
+  
+  if (digits.length < 13 || digits.length > 19) return false
+  
+  let sum = 0
+  let isEven = false
+  
+  // Loop through digits from right to left
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let digit = parseInt(digits[i], 10)
+    
+    if (isEven) {
+      digit *= 2
+      if (digit > 9) {
+        digit -= 9
+      }
+    }
+    
+    sum += digit
+    isEven = !isEven
+  }
+  
+  return (sum % 10) === 0
 }
 
 // --- TOKEN HELPERS ---
@@ -364,6 +392,7 @@ app.get('/menu', async (req, res) => {
     <div class="grid">
       <a href="${req.makeLink('/rooms')}" role="button" class="contrast">🏨 View Rooms</a>
       <a href="${req.makeLink('/reserve')}" role="button">📅 Make a Reservation</a>
+      <a href="${req.makeLink('/search')}" role="button">🔍 Search Rooms</a>
     </div>
     <div class="grid" style="margin-top: 1rem;">
       <a href="${req.makeLink('/overview')}" role="button" class="secondary">📋 View Booked Rooms</a>
@@ -681,6 +710,401 @@ app.get('/overview', async (req, res) => {
   `, req))
 })
 
+// --- SEARCH PAGE ---
+app.get('/search', async (req, res) => {
+  if (!req.user) return res.redirect('/')
+  await sleep(config.delays.search)
+  
+  // Parse query parameters
+  const checkIn = req.query.checkIn || ''
+  const checkOut = req.query.checkOut || ''
+  const nights = req.query.nights || ''
+  const guests = req.query.guests || ''
+  const maxPrice = req.query.maxPrice || ''
+  const category = req.query.category || ''
+  
+  // Filter rooms based on search criteria
+  let filteredRooms = roomTypes
+  
+  if (guests) {
+    const guestCount = Number(guests)
+    filteredRooms = filteredRooms.filter(r => r.occupancy.max_guests >= guestCount)
+  }
+  
+  if (maxPrice) {
+    const maxPriceNum = Number(maxPrice)
+    filteredRooms = filteredRooms.filter(r => r.pricing.base_price_per_night <= maxPriceNum)
+  }
+  
+  if (category && category !== 'All') {
+    filteredRooms = filteredRooms.filter(r => r.category === category)
+  }
+  
+  // Check availability if dates are provided
+  if (checkIn && isValidDate(checkIn)) {
+    let nightsCount = 1
+    if (nights) {
+      nightsCount = Number(nights)
+    } else if (checkOut && isValidDate(checkOut)) {
+      const checkInDate = new Date(checkIn)
+      const checkOutDate = new Date(checkOut)
+      const diffMs = checkOutDate - checkInDate
+      nightsCount = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+    }
+    filteredRooms = filteredRooms.filter(r => isRoomAvailable(r.room_name, checkIn, nightsCount))
+  }
+  
+  // Get unique categories for the filter
+  const categories = ['All', ...new Set(roomTypes.map(r => r.category))]
+  const categoryOptions = categories.map(cat => 
+    `<option value="${cat}" ${cat === category ? 'selected' : ''}>${cat}</option>`
+  ).join('')
+  
+  // Generate room cards
+  const cards = filteredRooms.map(room => {
+    let imgHtml = ''
+    if (room.media && room.media.photos && room.media.photos.length > 0) {
+       const safeFilename = encodeURIComponent(room.media.photos[0])
+       imgHtml = `<img src="/images/${safeFilename}" alt="${room.room_name}" class="list-thumbnail" />`
+    } else {
+       imgHtml = `<div class="img-placeholder"><span>No Image Available</span></div>`
+    }
+    return ``+`
+    <article>
+      <header>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong>${room.room_name}</strong>
+            <span class="badge">${room.category}</span>
+        </div>
+      </header>
+      ${imgHtml}
+      <p style="margin-top:1rem;">${room.description}</p>
+      <div style="font-size:0.9em; margin-bottom:1rem; color: var(--pico-muted-color);">
+        <span>📐 ${room.size.value} ${room.size.unit}</span> &bull; 
+        <span>👥 Max ${room.occupancy.max_guests} Guests</span>
+      </div>
+      <footer>
+        <div class="grid">
+           <button class="outline" disabled>€${room.pricing.base_price_per_night} /night</button>
+           <a href="${req.makeLink('/rooms/' + room.room_id)}" role="button">View Details</a>
+        </div>
+      </footer>
+    </article>
+  `}).join('')
+  
+  const resultsHtml = filteredRooms.length === 0 
+    ? `<article><p style="text-align:center; padding:2rem; color:var(--pico-muted-color);">No rooms match your search criteria. Try adjusting your filters.</p></article>`
+    : `<div class="grid">${cards}</div>`
+  
+  res.send(layout('Search Rooms', ``+`
+    <h2>Search for Rooms</h2>
+    <article>
+      <form action="${req.makeLink('/search')}" method="GET">
+        <div class="grid">
+          <label>Check-in Date
+            <input type="date" name="checkIn" value="${checkIn}" />
+          </label>
+          <label>Check-out Date
+            <input type="date" name="checkOut" value="${checkOut}" />
+          </label>
+          <label>Number of Nights
+            <input type="number" name="nights" value="${nights}" min="1" max="14" placeholder="Or use check-out" />
+          </label>
+        </div>
+        <div class="grid">
+          <label>Number of Guests
+            <input type="number" name="guests" value="${guests}" min="1" max="6" placeholder="Any" />
+          </label>
+          <label>Max Price per Night (€)
+            <input type="number" name="maxPrice" value="${maxPrice}" min="0" step="10" placeholder="Any" />
+          </label>
+          <label>Category
+            <select name="category">
+              ${categoryOptions}
+            </select>
+          </label>
+        </div>
+        <div class="grid">
+          <button type="submit">🔍 Search</button>
+          <a href="${req.makeLink('/search')}" role="button" class="secondary outline">Clear Filters</a>
+        </div>
+        ${config.authMode === 'token' && req.token ? `<input type="hidden" name="token" value="${req.token}" />` : ''}
+      </form>
+    </article>
+    
+    <div style="margin-top:2rem;">
+      <h3>Search Results <span class="badge">${filteredRooms.length}</span></h3>
+      ${resultsHtml}
+    </div>
+    
+    <div style="margin-top:2rem;">
+      <a href="${req.makeLink('/menu')}" role="button" class="secondary">Back to Menu</a>
+    </div>
+  `, req))
+})
+
+// --- CHECKOUT PAGE ---
+app.get('/checkout', async (req, res) => {
+  if (!req.user) return res.redirect('/')
+  await sleep(config.delays.checkout)
+  
+  // Get booking details from query parameters (if coming from a reservation)
+  const room = req.query.room || ''
+  const checkIn = req.query.checkIn || ''
+  const nights = req.query.nights || '1'
+  const guest = req.query.guest || req.user
+  
+  // Calculate total if room is specified
+  let totalPrice = 0
+  let roomDetails = null
+  if (room) {
+    roomDetails = roomTypes.find(r => r.room_name === room)
+    if (roomDetails) {
+      totalPrice = roomDetails.pricing.base_price_per_night * Number(nights)
+    }
+  }
+  
+  const formAction = req.makeLink('/checkout')
+  
+  res.send(layout('Checkout', ``+`
+    <h2>Payment & Checkout</h2>
+    
+    ${room ? `
+    <article>
+      <header><strong>Order Summary</strong></header>
+      <div class="grid">
+        <div>
+          <p><strong>Room:</strong> ${escapeHtml(room)}</p>
+          <p><strong>Guest:</strong> ${escapeHtml(guest)}</p>
+          ${checkIn ? `<p><strong>Check-in:</strong> ${escapeHtml(checkIn)}</p>` : ''}
+          <p><strong>Nights:</strong> ${escapeHtml(nights)}</p>
+        </div>
+        <div style="text-align: right;">
+          <p style="font-size: 1.5rem; color: var(--pico-primary);"><strong>€${totalPrice.toFixed(2)}</strong></p>
+          <p style="font-size: 0.9rem; color: var(--pico-muted-color);">(€${roomDetails ? roomDetails.pricing.base_price_per_night : 0}/night × ${nights} nights)</p>
+        </div>
+      </div>
+    </article>
+    ` : ''}
+    
+    <article>
+      <header><strong>Select Payment Method</strong></header>
+      <form action="${formAction}" method="POST" id="checkoutForm">
+        <input type="hidden" name="room" value="${escapeHtml(room)}" />
+        <input type="hidden" name="checkIn" value="${escapeHtml(checkIn)}" />
+        <input type="hidden" name="nights" value="${escapeHtml(nights)}" />
+        <input type="hidden" name="guest" value="${escapeHtml(guest)}" />
+        <input type="hidden" name="totalPrice" value="${totalPrice}" />
+        ${config.authMode === 'token' && req.token ? `<input type="hidden" name="token" value="${req.token}" />` : ''}
+        
+        <label>
+          <input type="radio" name="paymentMethod" value="creditcard" checked onchange="togglePaymentFields()" />
+          💳 Credit Card
+        </label>
+        
+        <label>
+          <input type="radio" name="paymentMethod" value="paypal" onchange="togglePaymentFields()" />
+          💰 PayPal
+        </label>
+        
+        <label>
+          <input type="radio" name="paymentMethod" value="ideal" onchange="togglePaymentFields()" />
+          🏦 iDEAL (Dutch Banks)
+        </label>
+        
+        <!-- Credit Card Fields -->
+        <div id="creditCardFields">
+          <hr />
+          <h4>Credit Card Details</h4>
+          <label>Card Number
+            <input type="text" name="cardNumber" placeholder="4111 1111 1111 1111" maxlength="19" />
+          </label>
+          <div class="grid">
+            <label>Expiry Date (MM/YY)
+              <input type="text" name="cardExpiry" placeholder="12/26" maxlength="5" />
+            </label>
+            <label>CVV
+              <input type="text" name="cardCvv" placeholder="123" maxlength="4" />
+            </label>
+          </div>
+          <label>Cardholder Name
+            <input type="text" name="cardHolder" placeholder="John Doe" />
+          </label>
+        </div>
+        
+        <!-- PayPal Fields -->
+        <div id="paypalFields" style="display:none;">
+          <hr />
+          <h4>PayPal Details</h4>
+          <label>PayPal Email
+            <input type="email" name="paypalEmail" placeholder="your.email@example.com" />
+          </label>
+        </div>
+        
+        <!-- iDEAL Fields -->
+        <div id="idealFields" style="display:none;">
+          <hr />
+          <h4>Select Your Bank</h4>
+          <label>Dutch Bank
+            <select name="idealBank">
+              <option value="">-- Select Bank --</option>
+              <option value="abn_amro">ABN AMRO</option>
+              <option value="ing">ING</option>
+              <option value="rabobank">Rabobank</option>
+              <option value="sns_bank">SNS Bank</option>
+              <option value="asn_bank">ASN Bank</option>
+              <option value="regiobank">RegioBank</option>
+              <option value="triodos">Triodos Bank</option>
+              <option value="van_lanschot">Van Lanschot</option>
+              <option value="knab">Knab</option>
+              <option value="bunq">Bunq</option>
+            </select>
+          </label>
+        </div>
+        
+        <div style="margin-top: 2rem;">
+          <button type="submit">Complete Payment</button>
+          <a href="${req.makeLink('/menu')}" role="button" class="secondary outline">Cancel</a>
+        </div>
+      </form>
+    </article>
+    
+    <script>
+      function togglePaymentFields() {
+        const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+        document.getElementById('creditCardFields').style.display = method === 'creditcard' ? 'block' : 'none';
+        document.getElementById('paypalFields').style.display = method === 'paypal' ? 'block' : 'none';
+        document.getElementById('idealFields').style.display = method === 'ideal' ? 'block' : 'none';
+      }
+    </script>
+  `, req))
+})
+
+app.post('/checkout', async (req, res) => {
+  if (!req.user) return res.redirect('/')
+  await sleep(config.delays.checkout)
+  
+  const { paymentMethod, room, checkIn, nights, guest, totalPrice } = req.body
+  
+  // Validate payment method
+  if (!paymentMethod) {
+    return res.status(400).send(layout('Payment Error', ``+`
+      <article style="border-color: red;">
+        <h3>❌ Payment Method Required</h3>
+        <p>Please select a payment method.</p>
+        <a href="${req.makeLink('/checkout')}" role="button" class="secondary">Try Again</a>
+      </article>
+    `, req))
+  }
+  
+  let validationError = null
+  
+  // Validate based on payment method
+  if (paymentMethod === 'creditcard') {
+    const { cardNumber, cardExpiry, cardCvv, cardHolder } = req.body
+    
+    if (!cardNumber || !cardExpiry || !cardCvv || !cardHolder) {
+      validationError = 'All credit card fields are required.'
+    } else {
+      // Validate card number using Luhn algorithm
+      const cleanCardNumber = cardNumber.replace(/\s/g, '')
+      if (!luhnCheck(cleanCardNumber)) {
+        validationError = 'Invalid credit card number. Please check and try again.<br><small>Test cards: 4111111111111111 (Visa), 5500000000000004 (Mastercard), 378282246310005 (Amex)</small>'
+      }
+      
+      // Validate expiry date
+      if (!validationError) {
+        const expiryMatch = cardExpiry.match(/^(\d{2})\/(\d{2})$/)
+        if (!expiryMatch) {
+          validationError = 'Invalid expiry date format. Use MM/YY.'
+        } else {
+          const month = parseInt(expiryMatch[1], 10)
+          const year = 2000 + parseInt(expiryMatch[2], 10)
+          const expiry = new Date(year, month - 1)
+          const now = new Date()
+          now.setDate(1) // Set to first day of current month
+          if (expiry < now) {
+            validationError = 'Card has expired.'
+          }
+          if (month < 1 || month > 12) {
+            validationError = 'Invalid month in expiry date.'
+          }
+        }
+      }
+      
+      // Validate CVV
+      if (!validationError && !/^\d{3,4}$/.test(cardCvv)) {
+        validationError = 'CVV must be 3 or 4 digits.'
+      }
+    }
+  } else if (paymentMethod === 'paypal') {
+    const { paypalEmail } = req.body
+    
+    if (!paypalEmail) {
+      validationError = 'PayPal email is required.'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(paypalEmail)) {
+      validationError = 'Invalid email format.'
+    }
+  } else if (paymentMethod === 'ideal') {
+    const { idealBank } = req.body
+    
+    if (!idealBank) {
+      validationError = 'Please select a bank.'
+    }
+  }
+  
+  // If validation failed, show error
+  if (validationError) {
+    return res.status(400).send(layout('Payment Error', ``+`
+      <article style="border-color: red;">
+        <h3>❌ Payment Validation Failed</h3>
+        <p>${validationError}</p>
+        <a href="${req.makeLink('/checkout')}?room=${encodeURIComponent(room)}&checkIn=${encodeURIComponent(checkIn)}&nights=${nights}&guest=${encodeURIComponent(guest)}" role="button" class="secondary">Try Again</a>
+      </article>
+    `, req))
+  }
+  
+  // Generate fake confirmation ID
+  const confirmationId = crypto.randomBytes(6).toString('hex').toUpperCase()
+  const transactionId = `TXN-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`
+  
+  // Payment method display names
+  const paymentMethodNames = {
+    creditcard: 'Credit Card',
+    paypal: 'PayPal',
+    ideal: 'iDEAL'
+  }
+  
+  res.send(layout('Payment Successful', ``+`
+    <article style="border-color: green;">
+      <header>
+        <h2>✅ Payment Successful!</h2>
+      </header>
+      
+      <div style="background: var(--pico-card-background-color); padding: 1.5rem; border-radius: 8px; margin: 1rem 0;">
+        <h3 style="margin-top: 0;">Booking Confirmation</h3>
+        <p><strong>Confirmation ID:</strong> <code style="font-size: 1.2rem; color: var(--pico-primary);">${confirmationId}</code></p>
+        <p><strong>Transaction ID:</strong> <code>${transactionId}</code></p>
+        <hr />
+        <p><strong>Guest:</strong> ${escapeHtml(guest)}</p>
+        ${room ? `<p><strong>Room:</strong> ${escapeHtml(room)}</p>` : ''}
+        ${checkIn ? `<p><strong>Check-in Date:</strong> ${escapeHtml(checkIn)}</p>` : ''}
+        <p><strong>Nights:</strong> ${escapeHtml(nights)}</p>
+        <p><strong>Total Amount Paid:</strong> <span style="font-size: 1.3rem; color: var(--pico-primary);">€${Number(totalPrice).toFixed(2)}</span></p>
+        <p><strong>Payment Method:</strong> ${paymentMethodNames[paymentMethod] || paymentMethod}</p>
+        <p style="font-size: 0.9rem; color: var(--pico-muted-color); margin-top: 1rem;">
+          <em>A confirmation email has been sent to your registered email address.</em>
+        </p>
+      </div>
+      
+      <div class="grid" style="margin-top: 2rem;">
+        <a href="${req.makeLink('/overview')}" role="button">View My Bookings</a>
+        <a href="${req.makeLink('/menu')}" role="button" class="secondary">Back to Menu</a>
+      </div>
+    </article>
+  `, req))
+})
+
 // --- CONFIG ---
 app.get('/config', (_req, res) => {
   const { delays, errorRate, authMode } = config
@@ -780,6 +1204,8 @@ app.get('/config', (_req, res) => {
              <label>Login <input type="number" name="delay_login" value="${delays.login}" /></label>
              <label>Room Details <input type="number" name="delay_rooms" value="${delays.rooms}" /></label>
              <label>Reserve <input type="number" name="delay_reserve" value="${delays.reserve}" /></label>
+             <label>Search <input type="number" name="delay_search" value="${delays.search}" /></label>
+             <label>Checkout <input type="number" name="delay_checkout" value="${delays.checkout}" /></label>
           </fieldset>
           <fieldset>
              <legend>Chaos</legend>
@@ -815,6 +1241,8 @@ app.post('/config', (req, res) => {
   config.delays.login = Number(req.body.delay_login) || 0
   config.delays.reserve = Number(req.body.delay_reserve) || 0
   config.delays.rooms = Number(req.body.delay_rooms) || 0
+  config.delays.search = Number(req.body.delay_search) || 0
+  config.delays.checkout = Number(req.body.delay_checkout) || 0
   config.errorRate = Number(req.body.errorRate) || 0
   config.authMode = req.body.authMode || 'cookie'
   
