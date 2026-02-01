@@ -256,7 +256,25 @@ const layout = (title, body, req) => `
   <link rel="stylesheet" href="/pico/pico.min.css" />
   <link rel="stylesheet" href="/public/flatpickr/flatpickr.min.css">
   <style>
-    header.hero { background: linear-gradient(135deg, #0f766e, #0ea5a4); color: white; padding: 2rem 1rem; border-radius: 0 0 1.5rem 1.5rem; margin-bottom: 2.5rem; }
+    /* GLOBAL BLUE THEME */
+    header.hero { background: linear-gradient(135deg, #1e40af, #3b82f6); color: white; padding: 2rem 1rem; border-radius: 0 0 1.5rem 1.5rem; margin-bottom: 2.5rem; }
+    
+    button, 
+    [role="button"], 
+    input[type="submit"],
+    .outline { 
+      background: linear-gradient(135deg, #1e40af, #3b82f6) !important; 
+      border: none !important; 
+      color: white !important;
+    }
+
+    button:hover, 
+    [role="button"]:hover, 
+    input[type="submit"]:hover { 
+      opacity: 0.9; 
+      filter: brightness(1.1);
+    }
+
     header.hero h1, header.hero p { color: white; margin-bottom: 0; }
     .user-display { background: rgba(255,255,255,0.2); padding: 0.25rem 0.75rem; border-radius: 99px; font-size: 0.9rem; }
     .badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.65rem; border-radius: 999px; background: var(--pico-muted-border-color); font-size: 0.85em; }
@@ -270,7 +288,7 @@ const layout = (title, body, req) => `
     .feature-tag { font-size: 0.8rem; background: var(--pico-card-background-color); padding: 0.3rem 0.5rem; border: 1px solid var(--pico-muted-border-color); border-radius: 4px; text-align: center; }
     .details-section { margin-bottom: 2rem; border-bottom: 1px solid var(--pico-muted-border-color); padding-bottom: 1rem; }
     .details-section:last-child { border-bottom: none; }
-    h4 { color: var(--pico-primary); margin-bottom: 0.5rem; font-size: 1.1rem; }
+    h4 { color: #1e40af; margin-bottom: 0.5rem; font-size: 1.1rem; }
     ul.compact { padding-left: 1.2rem; margin-bottom: 0.5rem; }
     .header-logo { height: 80px; width: auto; display: block; margin: 1rem auto 0; }
     .header-content { text-align: center; }
@@ -386,18 +404,15 @@ app.get('/menu', async (req, res) => {
   if (!req.user) return res.redirect('/') 
   await sleep(config.delays.menu)
   
-  // Custom gradient style to match the hero section
-  const btnStyle = `style="background: linear-gradient(135deg, #0f766e, #0ea5a4); border: none; color: white;"`;
-  
   res.send(layout('Main Menu', `
     <h2>Main Menu</h2>
     <p>Welcome back, <strong>${req.user}</strong>.</p>
     <div class="grid">
-      <a href="${req.makeLink('/rooms')}" role="button" ${btnStyle}>🏨 View Rooms</a>
-      <a href="${req.makeLink('/reserve')}" role="button" ${btnStyle}>📅 Make a Reservation</a>
-      <a href="${req.makeLink('/search')}" role="button" ${btnStyle}>🔍 Search Rooms</a>
-      <a href="${req.makeLink('/overview')}" role="button" ${btnStyle}>📋 View Booked Rooms</a>
-      <a href="/logout" role="button" ${btnStyle}>🚪 Logout</a>
+      <a href="${req.makeLink('/rooms')}" role="button">🏨 View Rooms</a>
+      <a href="${req.makeLink('/reserve')}" role="button">📅 Make a Reservation</a>
+      <a href="${req.makeLink('/search')}" role="button">🔍 Search Rooms</a>
+      <a href="${req.makeLink('/overview')}" role="button">📋 View Booked Rooms</a>
+      <a href="/logout" role="button">🚪 Logout</a>
     </div>
   `, req))
 })
