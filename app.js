@@ -256,44 +256,67 @@ const layout = (title, body, req) => `
   <link rel="stylesheet" href="/pico/pico.min.css" />
   <link rel="stylesheet" href="/public/flatpickr/flatpickr.min.css">
   <style>
-    /* GLOBAL BLUE THEME */
-    header.hero { background: linear-gradient(135deg, #1e40af, #3b82f6); color: white; padding: 2rem 1rem; border-radius: 0 0 1.5rem 1.5rem; margin-bottom: 2.5rem; }
-    
-    button, 
-    [role="button"], 
-    input[type="submit"],
-    .outline { 
-      background: linear-gradient(135deg, #1e40af, #3b82f6) !important; 
-      border: none !important; 
-      color: white !important;
-    }
+  :root { --blue: linear-gradient(135deg, #1e40af, #3b82f6); }
+  
+  /* 1. BUTTON STYLES */
+  button, [role="button"], input[type="submit"], .outline { 
+    background: var(--blue)!important; 
+    color: #fff!important; 
+    border: none!important; 
+    margin: 0!important; 
+    width: 100%; 
+    display: inline-flex; 
+    justify-content: center; 
+    align-items: center; 
+  }
+  
+  /* 2. HEADER HERO STYLES */
+  header.hero { 
+    background: var(--blue)!important; 
+    color: #fff!important; 
+    padding: 2rem 1rem; 
+    border-radius: 0 0 1.5rem 1.5rem; 
+    margin-bottom: 2.5rem; 
+    text-align: left; 
+    display: block;   
+  }
+  
+  /* HEADER CONTENT */
+  .header-content { 
+    text-align: left; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: flex-start; 
+  }
+  
+  header.hero h1, header.hero p { color: #fff; margin: 0; text-align: left; }
+  .header-logo { height: 80px; width: auto; margin: 1rem 0 0 0; display: block; } 
+  
+  /* BUTTON INTERACTIONS */
+  button:hover, [role="button"]:hover { opacity: .9; filter: brightness(1.1); }
+  
+  /* CARD & GRID ALIGNMENT */
+  .grid article { display: flex; flex-direction: column; height: 100%; }
+  .grid article footer { margin-top: auto; padding-top: 1rem; }
+  
+  /* SIDE-BY-SIDE BUTTONS */
+  footer .grid, .booking-actions { 
+    display: grid!important; 
+    grid-template-columns: 1fr 1fr!important; 
+    grid-auto-flow: column!important;
+    gap: 1rem!important; 
+    width: 100%; 
+  }
 
-    button:hover, 
-    [role="button"]:hover, 
-    input[type="submit"]:hover { 
-      opacity: 0.9; 
-      filter: brightness(1.1);
-    }
-
-    header.hero h1, header.hero p { color: white; margin-bottom: 0; }
-    .user-display { background: rgba(255,255,255,0.2); padding: 0.25rem 0.75rem; border-radius: 99px; font-size: 0.9rem; }
-    .badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.65rem; border-radius: 999px; background: var(--pico-muted-border-color); font-size: 0.85em; }
-    .table-wrap { overflow-x: auto; }
-    .image-stack { display: flex; flex-direction: column; gap: 2rem; margin-bottom: 2rem; }
-    .full-width-image { width: 100%; height: auto; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: block; }
-    .list-thumbnail { width: 100%; height: 250px; object-fit: cover; border-radius: 4px; background-color: #eee; }
-    .img-placeholder { width: 100%; height: 250px; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #666; border-radius: 4px; border: 2px dashed #ccc; font-size: 0.9rem; }
-    [data-tooltip] { border-bottom: 1px dotted white; cursor: help; }
-    .feature-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem; margin-bottom: 1rem; }
-    .feature-tag { font-size: 0.8rem; background: var(--pico-card-background-color); padding: 0.3rem 0.5rem; border: 1px solid var(--pico-muted-border-color); border-radius: 4px; text-align: center; }
-    .details-section { margin-bottom: 2rem; border-bottom: 1px solid var(--pico-muted-border-color); padding-bottom: 1rem; }
-    .details-section:last-child { border-bottom: none; }
-    h4 { color: #1e40af; margin-bottom: 0.5rem; font-size: 1.1rem; }
-    ul.compact { padding-left: 1.2rem; margin-bottom: 0.5rem; }
-    .header-logo { height: 80px; width: auto; display: block; margin: 1rem auto 0; }
-    .header-content { text-align: center; }
-    .token-preview { font-family: monospace; font-size: 0.75rem; color: var(--pico-muted-color); overflow: hidden; text-overflow: ellipsis; max-width: 250px; }
-    .hidden-link { position: fixed; bottom: 0; right: 0; width: 5px; height: 5px; opacity: 0; z-index: 9999; }
+  /* UTILITIES */
+  .user-display { background: rgba(255,255,255,.2); padding: .25rem .75rem; border-radius: 99px; font-size: .9rem; }
+  .badge { display: inline-flex; align-items: center; gap: .35rem; padding: .35rem .65rem; border-radius: 999px; background: var(--pico-muted-border-color); font-size: .85em; }
+  .list-thumbnail { width: 100%; height: 250px; object-fit: cover; border-radius: 4px; background: #eee; }
+  .img-placeholder { width: 100%; height: 250px; background: #f0f0f0; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; }
+  h4 { color: #1e40af; }
+  
+  /* HIDDEN LINK (Restored) */
+  .hidden-link { position: fixed; bottom: 0; left: 0; width: 5px; height: 5px; opacity: 0; z-index: 9999; }
   </style>
 </head>
 <body>
@@ -315,13 +338,14 @@ const layout = (title, body, req) => `
       </ul>
     </nav>
   </header>
-  <main class="container">
-    ${body}
-  </main>
+  <main class="container">${body}</main>
+  
   <footer class="container" style="margin-top:3rem; text-align:center; opacity:0.75; padding-bottom: 2rem;">
     <small>Scalable Performance Testing with JMeter</small>
   </footer>
+  
   <a href="/config" class="hidden-link" aria-label="Config"></a>
+  
   <script src="/public/flatpickr/flatpickr.min.js"></script>
 </body>
 </html>
@@ -431,25 +455,25 @@ app.get('/rooms', async (req, res) => {
     }
     return ``+`
     <article>
-      <header>
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <strong>${room.room_name}</strong>
-            <span class="badge">${room.category}</span>
-        </div>
-      </header>
-      ${imgHtml}
-      <p style="margin-top:1rem;">${room.description}</p>
-      <div style="font-size:0.9em; margin-bottom:1rem; color: var(--pico-muted-color);">
-        <span>📐 ${room.size.value} ${room.size.unit}</span> &bull; 
-        <span>👥 Max ${room.occupancy.max_guests} Guests</span>
-      </div>
-      <footer>
-        <div class="grid">
-           <button class="outline" disabled>€${room.pricing.base_price_per_night} /night</button>
-           <a href="${req.makeLink('/rooms/' + room.room_id)}" role="button">View Details</a>
-        </div>
-      </footer>
-    </article>
+  <header>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <strong>${room.room_name}</strong>
+        <span class="badge">${room.category}</span>
+    </div>
+  </header>
+  ${imgHtml}
+  <p style="margin-top:1rem;">${room.description}</p>
+  <div style="font-size:0.9em; margin-bottom:1rem; color: var(--pico-muted-color);">
+    <span>📐 ${room.size.value} ${room.size.unit}</span> &bull; 
+    <span>👥 Max ${room.occupancy.max_guests} Guests</span>
+  </div>
+  <footer>
+    <div class="grid">
+       <button class="outline" disabled>€${room.pricing.base_price_per_night} /night</button>
+       <a href="${req.makeLink('/rooms/' + room.room_id)}" role="button">View Details</a>
+    </div>
+  </footer>
+</article>
   `}).join('')
 
   res.send(layout('Our Rooms', ``+`
@@ -571,9 +595,9 @@ app.get('/reserve', async (req, res) => {
            <input type="number" name="nights" value="1" min="1" max="14" required />
         </label>
       </div>
-      <div style="margin-top: 1rem;">
+      <div class="booking-actions">
         <button type="submit">Confirm Booking</button>
-        <a href="${req.makeLink('/menu')}" role="button" class="secondary outline">Cancel</a>
+        <a href="${req.makeLink('/menu')}" role="button">Cancel</a>
       </div>
       ${config.authMode === 'token' && req.token ? `<input type="hidden" name="token" value="${req.token}" />` : ''}
     </form>
@@ -707,10 +731,15 @@ app.get('/overview', async (req, res) => {
         <td>${r.date}</td>
       </tr>
     `).reverse().join('')
+    
+  // Updated layout call with fixed button style
   res.send(layout('Overview', ``+`
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
       <h3>Current Bookings <span class="badge">${userReservations.length}</span></h3>
-      <a href="${req.makeLink('/reserve')}" role="button" class="contrast outline" style="font-size:0.8rem;">+ New</a>
+      <a href="${req.makeLink('/reserve')}" role="button" class="contrast outline" 
+         style="font-size:0.8rem; width: auto !important; padding: 0.3rem 1.2rem; margin-bottom: 0;">
+         + New
+      </a>
     </div>
     <div class="table-wrap">
       <table class="striped">
