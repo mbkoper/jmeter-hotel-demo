@@ -393,8 +393,6 @@ app.get('/menu', async (req, res) => {
       <a href="${req.makeLink('/rooms')}" role="button" class="contrast">🏨 View Rooms</a>
       <a href="${req.makeLink('/reserve')}" role="button">📅 Make a Reservation</a>
       <a href="${req.makeLink('/search')}" role="button">🔍 Search Rooms</a>
-    </div>
-    <div class="grid" style="margin-top: 1rem;">
       <a href="${req.makeLink('/overview')}" role="button" class="secondary">📋 View Booked Rooms</a>
       <a href="/logout" role="button" class="outline">Logout</a>
     </div>
