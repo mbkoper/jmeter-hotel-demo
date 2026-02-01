@@ -386,8 +386,8 @@ app.get('/menu', async (req, res) => {
   if (!req.user) return res.redirect('/') 
   await sleep(config.delays.menu)
   
-  // Use a custom style attribute for the buttons
-  const btnStyle = `style="background: linear-gradient(135deg, #0f766e, #0ea5a4); border: none;"`;
+  // Custom gradient style to match the hero section
+  const btnStyle = `style="background: linear-gradient(135deg, #0f766e, #0ea5a4); border: none; color: white;"`;
   
   res.send(layout('Main Menu', `
     <h2>Main Menu</h2>
@@ -397,7 +397,7 @@ app.get('/menu', async (req, res) => {
       <a href="${req.makeLink('/reserve')}" role="button" ${btnStyle}>📅 Make a Reservation</a>
       <a href="${req.makeLink('/search')}" role="button" ${btnStyle}>🔍 Search Rooms</a>
       <a href="${req.makeLink('/overview')}" role="button" ${btnStyle}>📋 View Booked Rooms</a>
-      <a href="/logout" role="button" class="outline">Logout</a>
+      <a href="/logout" role="button" ${btnStyle}>🚪 Logout</a>
     </div>
   `, req))
 })
