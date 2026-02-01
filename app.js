@@ -386,14 +386,17 @@ app.get('/menu', async (req, res) => {
   if (!req.user) return res.redirect('/') 
   await sleep(config.delays.menu)
   
-  res.send(layout('Main Menu', ``+`
+  // Use a custom style attribute for the buttons
+  const btnStyle = `style="background: linear-gradient(135deg, #0f766e, #0ea5a4); border: none;"`;
+  
+  res.send(layout('Main Menu', `
     <h2>Main Menu</h2>
     <p>Welcome back, <strong>${req.user}</strong>.</p>
     <div class="grid">
-      <a href="${req.makeLink('/rooms')}" role="button" class="contrast">🏨 View Rooms</a>
-      <a href="${req.makeLink('/reserve')}" role="button">📅 Make a Reservation</a>
-      <a href="${req.makeLink('/search')}" role="button">🔍 Search Rooms</a>
-      <a href="${req.makeLink('/overview')}" role="button" class="secondary">📋 View Booked Rooms</a>
+      <a href="${req.makeLink('/rooms')}" role="button" ${btnStyle}>🏨 View Rooms</a>
+      <a href="${req.makeLink('/reserve')}" role="button" ${btnStyle}>📅 Make a Reservation</a>
+      <a href="${req.makeLink('/search')}" role="button" ${btnStyle}>🔍 Search Rooms</a>
+      <a href="${req.makeLink('/overview')}" role="button" ${btnStyle}>📋 View Booked Rooms</a>
       <a href="/logout" role="button" class="outline">Logout</a>
     </div>
   `, req))
